@@ -33,10 +33,7 @@ import { getCurrentUser } from '@/lib/auth';
 export function TeamMembersManager() {
   const [selectedTeam, setSelectedTeam] = useState<string>('');
   const [showAddMember, setShowAddMember] = useState(false);
-  const [showJoinForm, setShowJoinForm] = useState(false);
-  const [joinKey, setJoinKey] = useState('');
-  const [joinName, setJoinName] = useState('');
-  const [joinEmail, setJoinEmail] = useState('');
+  const [addMemberEmail, setAddMemberEmail] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   
   const currentUser = getCurrentUser();
@@ -65,6 +62,39 @@ export function TeamMembersManager() {
     }
   };
 
+  const handleAddMember = () => {
+    if (!addMemberEmail) {
+      alert('Please enter an email address');
+      return;
+    }
+    
+    if (!selectedTeam) {
+      alert('Please select a team first');
+      return;
+    }
+    
+    // Extract name from email (before @)
+    const name = addMemberEmail.split('@')[0];
+    
+    // Generate a temporary key and use it to add the member
+    const tempKey = generateTeamKey(
+      selectedTeam,
+      currentUser?.id || currentUser?.email || 'system',
+      1, // Expires in 1 day
+      1  // Single use
+    );
+    
+    const result = joinTeamWithKey(tempKey.key, name, addMemberEmail);
+    if (result.success) {
+      alert('Member added successfully!');
+      setShowAddMember(false);
+      setAddMemberEmail('');
+      window.location.reload();
+    } else {
+      alert(`Error: ${result.error}`);
+    }
+  };
+
   const handleGenerateKey = () => {
     if (!selectedTeam) {
       alert('Please select a team first');
@@ -82,25 +112,6 @@ export function TeamMembersManager() {
     );
     
     alert(`Key generated: ${key.key}`);
-  };
-
-  const handleJoinTeam = () => {
-    if (!joinKey || !joinName || !joinEmail) {
-      alert('Please fill all fields');
-      return;
-    }
-    
-    const result = joinTeamWithKey(joinKey, joinName, joinEmail);
-    if (result.success) {
-      alert('Successfully joined team!');
-      setShowJoinForm(false);
-      setJoinKey('');
-      setJoinName('');
-      setJoinEmail('');
-      window.location.reload();
-    } else {
-      alert(`Error: ${result.error}`);
-    }
   };
 
   const handleCopyKey = (key: string) => {
@@ -185,39 +196,30 @@ export function TeamMembersManager() {
               </div>
             </div>
 
-            {/* Join Form */}
-            {showJoinForm && (
+            {/* Add Member Form */}
+            {showAddMember && (
               <Card className="bg-slate-700 border-slate-600 p-4 mb-4">
-                <h4 className="text-white font-semibold mb-3">Join Team with Key</h4>
+                <h4 className="text-white font-semibold mb-3">Add Member by Email</h4>
                 <div className="space-y-3">
                   <Input
-                    placeholder="Enter key"
-                    value={joinKey}
-                    onChange={(e) => setJoinKey(e.target.value)}
-                    className="bg-slate-800 text-white border-slate-600"
-                  />
-                  <Input
-                    placeholder="Your name"
-                    value={joinName}
-                    onChange={(e) => setJoinName(e.target.value)}
-                    className="bg-slate-800 text-white border-slate-600"
-                  />
-                  <Input
                     type="email"
-                    placeholder="Your email"
-                    value={joinEmail}
-                    onChange={(e) => setJoinEmail(e.target.value)}
+                    placeholder="Enter member email"
+                    value={addMemberEmail}
+                    onChange={(e) => setAddMemberEmail(e.target.value)}
                     className="bg-slate-800 text-white border-slate-600"
                   />
                   <div className="flex gap-2">
                     <Button
-                      onClick={handleJoinTeam}
+                      onClick={handleAddMember}
                       className="bg-white text-black hover:bg-gray-200 flex-1"
                     >
-                      Join Team
+                      Add Member
                     </Button>
                     <Button
-                      onClick={() => setShowJoinForm(false)}
+                      onClick={() => {
+                        setShowAddMember(false);
+                        setAddMemberEmail('');
+                      }}
                       variant="outline"
                       className="border-slate-600 text-white"
                     >
@@ -305,19 +307,6 @@ export function TeamMembersManager() {
             </div>
           </Card>
         </>
-      )}
-
-      {/* Join Team Button */}
-      {!selectedTeam && (
-        <Card className="bg-slate-800 border-slate-700 p-6">
-          <Button
-            onClick={() => setShowJoinForm(!showJoinForm)}
-            className="w-full bg-white text-black hover:bg-gray-200"
-          >
-            <Key size={16} className="mr-2" />
-            Join Team with Key
-          </Button>
-        </Card>
       )}
     </div>
   );

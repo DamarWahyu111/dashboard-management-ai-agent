@@ -26,7 +26,6 @@ export function DashboardLayout({ children, userName, userEmail }: DashboardLayo
   const [newTeamName, setNewTeamName] = useState('');
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [joinKey, setJoinKey] = useState('');
-  const [joinName, setJoinName] = useState('');
   const [joinEmail, setJoinEmail] = useState('');
 
   useEffect(() => {
@@ -46,7 +45,8 @@ export function DashboardLayout({ children, userName, userEmail }: DashboardLayo
   const handleCreateTeam = () => {
     if (!newTeamName.trim()) return;
 
-    const newTeam = createTeam(newTeamName, userName);
+    // createTeam expects 4 arguments: name, createdBy, description, color
+    const newTeam = createTeam(newTeamName, userName, '', '');
     setTeams([...teams, newTeam]);
     setSelectedTeam(newTeam.id);
     setNewTeamName('');
@@ -64,17 +64,19 @@ export function DashboardLayout({ children, userName, userEmail }: DashboardLayo
   };
 
   const handleJoinTeam = () => {
-    if (!joinKey || !joinName || !joinEmail) {
+    if (!joinKey || !joinEmail) {
       alert('Mohon isi semua field');
       return;
     }
 
-    const result = joinTeamWithKey(joinKey, joinName, joinEmail);
+    // Extract name from email (before @)
+    const name = joinEmail.split('@')[0];
+
+    const result = joinTeamWithKey(joinKey, name, joinEmail);
     if (result.success) {
       alert('Berhasil join team!');
       setShowJoinForm(false);
       setJoinKey('');
-      setJoinName('');
       setJoinEmail('');
       // Reload teams
       const allTeams = getAllTeams();
@@ -226,15 +228,7 @@ export function DashboardLayout({ children, userName, userEmail }: DashboardLayo
                           className="bg-gray-900 text-white border-gray-700"
                         />
                       </div>
-                      <div>
-                        <label className="text-sm text-gray-300 mb-1 block">Your Name</label>
-                        <Input
-                          placeholder="Enter your name"
-                          value={joinName}
-                          onChange={(e) => setJoinName(e.target.value)}
-                          className="bg-gray-900 text-white border-gray-700"
-                        />
-                      </div>
+                      
                       <div>
                         <label className="text-sm text-gray-300 mb-1 block">Your Email</label>
                         <Input
@@ -245,6 +239,7 @@ export function DashboardLayout({ children, userName, userEmail }: DashboardLayo
                           className="bg-gray-900 text-white border-gray-700"
                         />
                       </div>
+                      
                       <div className="flex gap-2">
                         <Button
                           onClick={handleJoinTeam}
@@ -256,7 +251,6 @@ export function DashboardLayout({ children, userName, userEmail }: DashboardLayo
                           onClick={() => {
                             setShowJoinForm(false);
                             setJoinKey('');
-                            setJoinName('');
                             setJoinEmail('');
                           }}
                           variant="outline"
