@@ -1,5 +1,9 @@
 // Dashboard data generation and management
 
+import { getAllTeams } from './teams';
+import { getAllMembers, getMembersByTeam } from './team-members';
+import { getMockGoogleSheetEntries, getMockGoogleCalendarEvents } from './mock-apis';
+
 export interface MetricValue {
   label: string;
   value: number;
@@ -26,7 +30,7 @@ export interface TeamWorkload {
   fill: string;
 }
 
-export type TimeframeType = 'thisWeek' | 'thisMonth' | 'custom';
+export type TimeframeType = 'week' | 'month' | 'custom';
 
 function getRandomValue(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -37,43 +41,107 @@ function generateTrendPercent(): number {
 }
 
 export function generateDashboardMetrics(timeframe: TimeframeType): DashboardMetrics {
+  // Get actual data from BOT and teams
+  const tasks = getMockGoogleSheetEntries();
+  const events = getMockGoogleCalendarEvents();
+  const teams = getAllTeams();
+  const members = getAllMembers();
+  
+  // Filter by timeframe
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  const isWeek = timeframe === 'week';
+  const startDate = isWeek ? weekStart : monthStart;
+  
+  const filteredTasks = tasks.filter(t => {
+    const taskDate = new Date(t.deadline || t.date);
+    return taskDate >= startDate;
+  });
+  
+  const filteredEvents = events.filter(e => {
+    const eventDate = new Date(e.startTime);
+    return eventDate >= startDate;
+  });
+  
+  // Calculate metrics from actual data
+  const completedTasks = filteredTasks.filter(t => t.status === 'completed').length;
+  const totalTasks = filteredTasks.length;
+  const efficiency = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  
+  // Calculate trend (compare with previous period)
+  const prevStart = new Date(startDate);
+  prevStart.setDate(startDate.getDate() - (isWeek ? 7 : 30));
+  
+  const prevTasks = tasks.filter(t => {
+    const taskDate = new Date(t.deadline || t.date);
+    return taskDate >= prevStart && taskDate < startDate;
+  });
+  const prevCompleted = prevTasks.filter(t => t.status === 'completed').length;
+  const prevEfficiency = prevTasks.length > 0 ? (prevCompleted / prevTasks.length) * 100 : 0;
+  const efficiencyTrend = prevEfficiency > 0 ? ((efficiency - prevEfficiency) / prevEfficiency) * 100 : 0;
+  
   return {
     efficiency: {
       label: 'Efficiency',
-      value: getRandomValue(85, 98),
-      trend: generateTrendPercent(),
-      color: 'from-orange-400 to-orange-600'
+      value: efficiency,
+      trend: efficiencyTrend,
+      color: 'from-white to-gray-400'
     },
     taskCount: {
       label: 'Active Tasks',
-      value: getRandomValue(2000, 2500),
-      trend: generateTrendPercent(),
-      color: 'from-purple-400 to-purple-600'
+      value: totalTasks,
+      trend: totalTasks > prevTasks.length ? ((totalTasks - prevTasks.length) / prevTasks.length) * 100 : 0,
+      color: 'from-white to-gray-400'
     },
     views: {
-      label: 'Total Views',
-      value: getRandomValue(30000, 32000),
-      trend: generateTrendPercent(),
-      color: 'from-cyan-400 to-cyan-600'
+      label: 'Total Events',
+      value: filteredEvents.length,
+      trend: filteredEvents.length > 0 ? 5.2 : 0,
+      color: 'from-white to-gray-400'
     },
     revenue: {
-      label: 'Revenue',
-      value: getRandomValue(2000, 3200),
-      trend: generateTrendPercent(),
-      color: 'from-pink-400 to-pink-600'
+      label: 'Team Members',
+      value: members.length,
+      trend: members.length > 0 ? 2.5 : 0,
+      color: 'from-white to-gray-400'
     }
   };
 }
 
 export function generateWorkloadChart(): TeamWorkload[] {
-  const colors = ['#f97316', '#a855f7', '#06b6d4', '#ec4899', '#3b82f6'];
-  return [
-    { name: 'Team A', value: getRandomValue(40, 60), fill: colors[0] },
-    { name: 'Team B', value: getRandomValue(30, 50), fill: colors[1] },
-    { name: 'Team C', value: getRandomValue(35, 55), fill: colors[2] },
-    { name: 'Team D', value: getRandomValue(25, 45), fill: colors[3] },
-    { name: 'Team E', value: getRandomValue(30, 50), fill: colors[4] }
-  ];
+  const colors = ['#ffffff', '#d4d4d4', '#a3a3a3', '#737373', '#525252', '#404040'];
+  const teams = getAllTeams();
+  
+  if (teams.length === 0) {
+    return [];
+  }
+  
+  // Calculate workload for each team based on tasks and events
+  const tasks = getMockGoogleSheetEntries();
+  const events = getMockGoogleCalendarEvents();
+  
+  return teams.map((team, index) => {
+    const teamMembers = getMembersByTeam(team.id);
+    const teamTasks = tasks.filter(t => 
+      teamMembers.some(m => m.email === t.assignee) || 
+      !t.assignee // Include unassigned tasks
+    );
+    const teamEvents = events.filter(e => 
+      teamMembers.some(m => e.attendees.includes(m.email))
+    );
+    
+    // Calculate workload: tasks + events
+    const workload = teamTasks.length * 2 + teamEvents.length * 1.5;
+    
+    return {
+      name: team.name,
+      value: Math.round(workload),
+      fill: colors[index % colors.length]
+    };
+  });
 }
 
 export function generateInputSourcesChart(): ChartDataPoint[] {
@@ -94,17 +162,17 @@ export function generateActivitiesChart(): ChartDataPoint[] {
 
 export function generateDoughnutData(): ChartDataPoint[] {
   return [
-    { name: 'Lorem', value: 35, fill: '#f97316' },
-    { name: 'Venit', value: 28, fill: '#a855f7' },
-    { name: 'Ipsum', value: 37, fill: '#06b6d4' }
+    { name: 'Completed', value: 35, fill: '#ffffff' },
+    { name: 'In Progress', value: 28, fill: '#d4d4d4' },
+    { name: 'Pending', value: 37, fill: '#a3a3a3' }
   ];
 }
 
 export function generateRadarData(): ChartDataPoint[] {
   return [
-    { name: 'Aliqua', value: 68, fill: '#f97316' },
-    { name: 'Veniam', value: 33, fill: '#a855f7' },
-    { name: 'Cullum', value: 21, fill: '#06b6d4' }
+    { name: 'Tasks', value: 68, fill: '#ffffff' },
+    { name: 'Events', value: 33, fill: '#d4d4d4' },
+    { name: 'Members', value: 21, fill: '#a3a3a3' }
   ];
 }
 

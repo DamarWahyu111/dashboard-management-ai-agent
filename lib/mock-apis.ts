@@ -17,6 +17,9 @@ export interface MockSheetEntry {
   source: 'whatsapp' | 'slack' | 'email';
   status: 'pending' | 'in_progress' | 'completed';
   notes: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  deadline?: Date;
+  assignee?: string;
 }
 
 export interface MockVoiceNote {
@@ -90,6 +93,10 @@ export const getMockGoogleCalendarEvents = (): MockCalendarEvent[] => {
 // Mock Google Sheets API
 export const getMockGoogleSheetEntries = (): MockSheetEntry[] => {
   const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const dayAfterTomorrow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+  const friday = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
+  
   return [
     {
       id: 'sheet-1',
@@ -98,6 +105,9 @@ export const getMockGoogleSheetEntries = (): MockSheetEntry[] => {
       source: 'whatsapp',
       status: 'in_progress',
       notes: 'From Adnan - Urgent, due Friday for client presentation',
+      priority: 'urgent',
+      deadline: friday,
+      assignee: 'Adnan',
     },
     {
       id: 'sheet-2',
@@ -106,6 +116,9 @@ export const getMockGoogleSheetEntries = (): MockSheetEntry[] => {
       source: 'whatsapp',
       status: 'pending',
       notes: 'Backend team coordination needed',
+      priority: 'high',
+      deadline: dayAfterTomorrow,
+      assignee: 'John',
     },
     {
       id: 'sheet-3',
@@ -114,16 +127,74 @@ export const getMockGoogleSheetEntries = (): MockSheetEntry[] => {
       source: 'slack',
       status: 'completed',
       notes: 'Completed and reviewed by team',
+      priority: 'medium',
+      deadline: new Date(now.getTime() - 86400000),
+      assignee: 'Sarah',
+    },
+    {
+      id: 'sheet-4',
+      date: tomorrow,
+      task: 'Marketing Sync Meeting Prep',
+      source: 'email',
+      status: 'pending',
+      notes: 'Prepare slides for marketing sync meeting',
+      priority: 'high',
+      deadline: tomorrow,
+      assignee: 'Sarah',
+    },
+    {
+      id: 'sheet-5',
+      date: friday,
+      task: 'Client Presentation Review',
+      source: 'whatsapp',
+      status: 'pending',
+      notes: 'Final review before client presentation',
+      priority: 'urgent',
+      deadline: friday,
+      assignee: 'Adnan',
     },
   ];
 };
+
+// Real Google Sheets API Integration (replace with actual API)
+const GOOGLE_SHEETS_API_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_API_URL || 'https://sheets.googleapis.com/v4/spreadsheets';
+const GOOGLE_SHEETS_SPREADSHEET_ID = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_ID || 'YOUR_SPREADSHEET_ID';
+const GOOGLE_SHEETS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_API_KEY || 'YOUR_API_KEY';
 
 // Simulate adding to Google Sheets
 export const addToGoogleSheets = async (
   task: string,
   details: string,
   dueDate: Date,
+  priority?: 'low' | 'medium' | 'high' | 'urgent',
+  assignee?: string,
 ): Promise<MockSheetEntry> => {
+  // TODO: Replace with actual Google Sheets API call
+  // Example API call:
+  /*
+  const response = await fetch(
+    `${GOOGLE_SHEETS_API_URL}/${GOOGLE_SHEETS_SPREADSHEET_ID}/values/A:append?valueInputOption=RAW&key=${GOOGLE_SHEETS_API_KEY}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        values: [[
+          new Date().toISOString(),
+          task,
+          details,
+          dueDate.toISOString(),
+          priority || 'medium',
+          assignee || '',
+          'pending'
+        ]],
+      }),
+    }
+  );
+  const data = await response.json();
+  */
+
   return new Promise((resolve) => {
     setTimeout(() => {
       const entry: MockSheetEntry = {
@@ -133,11 +204,19 @@ export const addToGoogleSheets = async (
         source: 'whatsapp',
         status: 'pending',
         notes: details,
+        priority: priority || 'medium',
+        deadline: dueDate,
+        assignee: assignee,
       };
       resolve(entry);
     }, 300);
   });
 };
+
+// Real Google Calendar API Integration (replace with actual API)
+const GOOGLE_CALENDAR_API_URL = process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_API_URL || 'https://www.googleapis.com/calendar/v3/calendars';
+const GOOGLE_CALENDAR_ID = process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_ID || 'primary';
+const GOOGLE_CALENDAR_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_API_KEY || 'YOUR_API_KEY';
 
 // Simulate adding to Google Calendar
 export const addToGoogleCalendar = async (
@@ -146,6 +225,34 @@ export const addToGoogleCalendar = async (
   endTime: Date,
   attendees: string[],
 ): Promise<MockCalendarEvent> => {
+  // TODO: Replace with actual Google Calendar API call
+  // Example API call:
+  /*
+  const response = await fetch(
+    `${GOOGLE_CALENDAR_API_URL}/${GOOGLE_CALENDAR_ID}/events?key=${GOOGLE_CALENDAR_API_KEY}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GOOGLE_CALENDAR_ACCESS_TOKEN}`, // Use OAuth token
+      },
+      body: JSON.stringify({
+        summary: title,
+        start: {
+          dateTime: startTime.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        end: {
+          dateTime: endTime.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        attendees: attendees.map(email => ({ email })),
+      }),
+    }
+  );
+  const data = await response.json();
+  */
+
   return new Promise((resolve) => {
     setTimeout(() => {
       const event: MockCalendarEvent = {

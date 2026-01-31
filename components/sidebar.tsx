@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   BarChart3,
   Calendar,
@@ -24,11 +24,31 @@ interface SidebarProps {
 
 export function Sidebar({ userName, userEmail }: SidebarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     router.push('/login');
+  };
+
+  const handleNavClick = (href: string, id: string) => {
+    setIsOpen(false);
+    
+    if (pathname === '/dashboard') {
+      if (id === 'calendar') {
+        // Navigate to calendar section in overview
+        window.location.hash = 'calendar';
+        // Trigger custom event for dashboard to handle
+        window.dispatchEvent(new CustomEvent('navigateToCalendar'));
+      } else if (id === 'dashboard') {
+        window.location.hash = '';
+        window.dispatchEvent(new CustomEvent('navigateToTab', { detail: 'overview' }));
+      } else {
+        window.location.hash = id;
+        window.dispatchEvent(new CustomEvent('navigateToTab', { detail: id }));
+      }
+    }
   };
 
   const navItems = [
@@ -84,17 +104,27 @@ export function Sidebar({ userName, userEmail }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="p-4 space-y-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              <item.icon size={20} />
-              <span className="text-sm">{item.label}</span>
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive = typeof window !== 'undefined' && 
+              (item.id === 'calendar' ? window.location.hash === '#calendar' : 
+               window.location.hash === `#${item.id}` || 
+               (item.id === 'dashboard' && !window.location.hash));
+            
+            return (
+              <button
+                key={item.label}
+                onClick={() => handleNavClick(item.href, item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-slate-800 text-white'
+                    : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+                }`}
+              >
+                <item.icon size={20} />
+                <span className="text-sm">{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
 
         {/* Logout Button */}

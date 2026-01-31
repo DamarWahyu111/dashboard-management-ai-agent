@@ -54,7 +54,7 @@ export function DashboardCharts() {
                 contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
                 labelStyle={{ color: '#fff' }}
               />
-              <Bar dataKey="value" fill="#8884d8" radius={[8, 8, 0, 0]}>
+              <Bar dataKey="value" fill="#ffffff" radius={[8, 8, 0, 0]}>
                 {workloadData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
@@ -83,7 +83,7 @@ export function DashboardCharts() {
                 contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
                 labelStyle={{ color: '#fff' }}
               />
-              <Line type="monotone" dataKey="value" stroke="#06b6d4" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="value" stroke="#ffffff" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -154,7 +154,7 @@ export function DashboardCharts() {
                 contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
                 labelStyle={{ color: '#fff' }}
               />
-              <Bar dataKey="value" fill="#f97316" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="value" fill="#ffffff" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -186,7 +186,7 @@ export function DashboardCharts() {
                   name: item.name,
                   fill: item.fill
                 }))}
-                fill="#06b6d4"
+                fill="#ffffff"
               >
                 {radarData.map((item, idx) => (
                   <Cell key={`cell-${idx}`} fill={item.fill} />

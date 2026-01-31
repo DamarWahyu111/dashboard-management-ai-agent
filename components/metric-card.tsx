@@ -11,11 +11,11 @@ interface MetricCardProps {
 }
 
 export function MetricCard({ label, value, trend, icon, color }: MetricCardProps) {
-  const bgGradient = color || 'from-blue-400 to-blue-600';
+  const bgGradient = color || 'from-white to-gray-400';
   const isTrendUp = trend !== undefined && trend >= 0;
 
   return (
-    <Card className={`bg-gradient-to-br ${bgGradient} border-0 text-white p-6`}>
+    <Card className={`bg-gradient-to-br ${bgGradient} border-0 text-black p-6`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium opacity-90">{label}</p>
