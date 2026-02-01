@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { MetricCard } from '@/components/metric-card';
@@ -18,16 +18,32 @@ import type { User } from '@/lib/auth';
 import { generateDashboardMetrics, type TimeframeType } from '@/lib/dashboard';
 import { RefreshCw, Calendar as CalendarIcon } from 'lucide-react';
 
-export default function DashboardPage() {
+// 1. Component Loading Terpisah (Mencegah ReferenceError)
+function LoadingState() {
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+        <p className="text-slate-400 animate-pulse">Memuat Dashboard...</p>
+      </div>
+    </div>
+  );
+}
+
+// 2. Component Content Utama
+function DashboardContent() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // GANTI NAMA VARIABEL SUPAYA CACHE RESET
+  const [isGlobalLoading, setIsGlobalLoading] = useState(true);
+  
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
-  const [selectedDateEvents, setSelectedDateEvents] = useState<Array<{ id: string; title: string; time: string }>>([]);
-  const [selectedDateTasks, setSelectedDateTasks] = useState<Array<{ id: string; name: string; priority: string; status: string }>>([]);
-  const [additionalEvents, setAdditionalEvents] = useState<Array<{ id: string; title: string; date: Date; time: string }>>([]);
-  const [additionalTasks, setAdditionalTasks] = useState<Array<{ id: string; name: string; priority: string; status: string }>>([]);
+  const [selectedDateEvents, setSelectedDateEvents] = useState<any[]>([]);
+  const [selectedDateTasks, setSelectedDateTasks] = useState<any[]>([]);
+  const [additionalEvents, setAdditionalEvents] = useState<any[]>([]);
+  const [additionalTasks, setAdditionalTasks] = useState<any[]>([]);
   const [timeframe, setTimeframe] = useState<TimeframeType>('week' as TimeframeType);
   const [metrics, setMetrics] = useState(generateDashboardMetrics('week' as TimeframeType));
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -35,56 +51,33 @@ export default function DashboardPage() {
   useEffect(() => {
     const localUser = getCurrentUser();
     if (localUser) {
-      console.log("✅ User detected");
       setUser(localUser);
-      setIsLoading(false);
+      setIsGlobalLoading(false); // Menggunakan variabel baru
     } else {
-      console.log("❌ No user found, redirecting...");
       router.push('/login');
     }
 
-    // Handle hash navigation
+    // Handle hash navigation (Client Side Only)
     const handleHashChange = () => {
-      const hash = window.location.hash.slice(1);
-      if (hash === 'calendar') {
-        setActiveTab('overview');
-        setTimeout(() => {
-          const calendarSection = document.getElementById('team-calendar');
-          if (calendarSection) calendarSection.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      } else if (hash && ['overview', 'charts', 'statistics', 'ai'].includes(hash)) {
-        setActiveTab(hash);
-      }
-    };
-
-    // Event Listeners for custom navigation
-    const onNavigateToCalendar = () => {
-      setActiveTab('overview');
-      window.location.hash = 'calendar';
-      setTimeout(() => {
-        const calendarSection = document.getElementById('team-calendar');
-        if (calendarSection) calendarSection.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    };
-
-    const onNavigateToTab = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const tab = customEvent.detail;
-      if (['overview', 'charts', 'statistics', 'ai'].includes(tab)) {
-        setActiveTab(tab);
-        window.location.hash = tab === 'overview' ? '' : tab;
+      if (typeof window !== 'undefined') {
+        const hash = window.location.hash.slice(1);
+        if (hash === 'calendar') {
+          setActiveTab('overview');
+          setTimeout(() => {
+            const calendarSection = document.getElementById('team-calendar');
+            if (calendarSection) calendarSection.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        } else if (hash && ['overview', 'charts', 'statistics', 'ai'].includes(hash)) {
+          setActiveTab(hash);
+        }
       }
     };
 
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
-    window.addEventListener('navigateToCalendar', onNavigateToCalendar);
-    window.addEventListener('navigateToTab', onNavigateToTab);
     
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
-      window.removeEventListener('navigateToCalendar', onNavigateToCalendar);
-      window.removeEventListener('navigateToTab', onNavigateToTab);
     };
   }, [router]);
 
@@ -95,24 +88,7 @@ export default function DashboardPage() {
     setIsRefreshing(false);
   };
 
-  const handleTimeframeChange = (newTimeframe: TimeframeType) => {
-    setTimeframe(newTimeframe);
-    setMetrics(generateDashboardMetrics(newTimeframe));
-  };
-
-  // Fungsi untuk button 'Lihat Detail Calendar' (Versi yang sudah dibetulkan)
-  const handleManualCalendarNav = () => {
-    setActiveTab('overview');
-    window.location.hash = 'calendar';
-    setTimeout(() => {
-      const calendarSection = document.getElementById('team-calendar');
-      if (calendarSection) {
-        calendarSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
-  };
-
-  const handleDateSelect = (date: Date, events: Array<{ id: string; title: string; time: string }>, tasks: Array<{ id: string; name: string; priority: string; status: string }>) => {
+  const handleDateSelect = (date: Date, events: any[], tasks: any[]) => {
     setSelectedCalendarDate(date);
     setSelectedDateEvents(events);
     setSelectedDateTasks(tasks);
@@ -124,15 +100,9 @@ export default function DashboardPage() {
     }, 100);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
-          <p className="text-slate-400 animate-pulse">Syncing Dashboard Data...</p>
-        </div>
-      </div>
-    );
+  // Gunakan variabel loading yang baru
+  if (isGlobalLoading) {
+    return <LoadingState />;
   }
 
   if (!user) return null;
@@ -149,25 +119,26 @@ export default function DashboardPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-6">
-          {/* Controls */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex gap-2">
               <button
-                onClick={() => handleTimeframeChange('week' as TimeframeType)}
+                onClick={() => {
+                  setTimeframe('week');
+                  setMetrics(generateDashboardMetrics('week'));
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  timeframe === 'week'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  timeframe === 'week' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
                 }`}
               >
                 This Week
               </button>
               <button
-                onClick={() => handleTimeframeChange('month' as TimeframeType)}
+                onClick={() => {
+                  setTimeframe('month');
+                  setMetrics(generateDashboardMetrics('month'));
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  timeframe === 'month'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  timeframe === 'month' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
                 }`}
               >
                 This Month
@@ -186,40 +157,23 @@ export default function DashboardPage() {
             </Button>
           </div>
 
-          {/* Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard
-              label={metrics.efficiency.label}
-              value={metrics.efficiency.value}
-              trend={metrics.efficiency.trend}
-              color="from-orange-400 to-orange-600"
-            />
-            <MetricCard
-              label={metrics.taskCount.label}
-              value={metrics.taskCount.value}
-              trend={metrics.taskCount.trend}
-              color="from-purple-400 to-purple-600"
-            />
-            <MetricCard
-              label={metrics.views.label}
-              value={metrics.views.value}
-              trend={metrics.views.trend}
-              color="from-cyan-400 to-cyan-600"
-            />
-            <MetricCard
-              label={metrics.revenue.label}
-              value={metrics.revenue.value as unknown as number}
-              trend={metrics.revenue.trend}
-              color="from-pink-400 to-pink-600"
-            />
+            <MetricCard label={metrics.efficiency.label} value={metrics.efficiency.value} trend={metrics.efficiency.trend} color="from-orange-400 to-orange-600" />
+            <MetricCard label={metrics.taskCount.label} value={metrics.taskCount.value} trend={metrics.taskCount.trend} color="from-purple-400 to-purple-600" />
+            <MetricCard label={metrics.views.label} value={metrics.views.value} trend={metrics.views.trend} color="from-cyan-400 to-cyan-600" />
+            <MetricCard label={metrics.revenue.label} value={metrics.revenue.value as any} trend={metrics.revenue.trend} color="from-pink-400 to-pink-600" />
           </div>
 
-          {/* Calendar Widget */}
           <div id="team-calendar" className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">Team Calendar</h3>
               <Button
-                onClick={handleManualCalendarNav}
+                onClick={() => {
+                   setActiveTab('overview');
+                   setTimeout(() => {
+                     document.getElementById('team-calendar')?.scrollIntoView({ behavior: 'smooth' });
+                   }, 100);
+                }}
                 variant="outline"
                 size="sm"
                 className="bg-white hover:bg-gray-200 text-black border-white flex items-center gap-2"
@@ -230,27 +184,25 @@ export default function DashboardPage() {
             </div>
             <CalendarView 
               showDetailsBelow={true}
-              onDateSelect={(date, events, tasks) => handleDateSelect(date, events as unknown as Array<{ id: string; title: string; time: string }>, tasks as unknown as Array<{ id: string; name: string; priority: string; status: string }>)}
-              customEvents={additionalEvents as any}
-              customTasks={additionalTasks as any}
+              onDateSelect={handleDateSelect}
+              customEvents={additionalEvents}
+              customTasks={additionalTasks}
             />
             <p className="text-sm text-slate-400 mt-2">
               💡 Klik pada tanggal untuk melihat detail task, meeting, dan deadline di bawah calendar.
             </p>
             
-            {/* Calendar Day Details */}
             {selectedCalendarDate && (
               <div id="calendar-details" className="mt-4">
                 <CalendarDayDetails 
                   date={selectedCalendarDate}
-                  events={selectedDateEvents as any}
-                  tasks={selectedDateTasks as any}
+                  events={selectedDateEvents}
+                  tasks={selectedDateTasks}
                 />
               </div>
             )}
           </div>
 
-          {/* Quick Insight */}
           <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mt-6">
             <h3 className="text-white font-semibold mb-2">AI Quick Insights</h3>
             <p className="text-slate-400 text-sm">
@@ -259,13 +211,11 @@ export default function DashboardPage() {
           </div>
         </TabsContent>
 
-        {/* Charts Tab */}
         <TabsContent value="charts" className="space-y-6 mt-6">
           <h2 className="text-xl font-bold text-white mb-4">Advanced Analytics</h2>
           <DashboardCharts />
         </TabsContent>
 
-        {/* Statistics Tab */}
         <TabsContent value="statistics" className="space-y-6 mt-6">
           <div className="space-y-6">
             <div>
@@ -281,7 +231,6 @@ export default function DashboardPage() {
           </div>
         </TabsContent>
 
-        {/* AI Orchestration Tab */}
         <TabsContent value="ai" className="space-y-6 mt-6">
           <div className="space-y-6">
             <div>
@@ -292,12 +241,10 @@ export default function DashboardPage() {
             </div>
             <BotTaskProcessor 
               onTaskProcessed={(result) => {
-                if (result.task) {
-                  setAdditionalTasks((prev) => [...prev, result.task as any]);
-                }
-                if (result.calendarEvent) {
-                  setAdditionalEvents((prev) => [...prev, result.calendarEvent as any]);
-                }
+                if (result.task) setAdditionalTasks(prev => [...prev, result.task]);
+                if (result.calendarEvent) setAdditionalEvents(prev => [...prev, result.calendarEvent]);
+                
+                // Optional: Reload page logic
                 setTimeout(() => {
                   window.location.reload();
                 }, 2000);
@@ -312,5 +259,14 @@ export default function DashboardPage() {
         </TabsContent>
       </Tabs>
     </DashboardLayout>
+  );
+}
+
+// 3. Export Default dengan Suspense Boundary (Mencegah Error Build)
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <DashboardContent />
+    </Suspense>
   );
 }
