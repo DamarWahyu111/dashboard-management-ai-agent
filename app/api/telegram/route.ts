@@ -54,5 +54,5 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  return NextResponse.json({ status: 'Bot is Alive' });
+  return NextResponse.json({ status: 'Scripted Bot Ready' });
 }
