@@ -10,29 +10,27 @@ import { CalendarView } from '@/components/calendar-view';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getCurrentUser } from '@/lib/auth';
+import type { User } from '@/lib/auth';
 import { generateDashboardMetrics, type TimeframeType } from '@/lib/dashboard';
 import { RefreshCw } from 'lucide-react';
-import { AISimpleInput } from '@/components/ai-simple-input'; // Import AISimpleInput
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [timeframe, setTimeframe] = useState<TimeframeType>('week');
-  const [metrics, setMetrics] = useState(generateDashboardMetrics('week'));
+  const [timeframe, setTimeframe] = useState<TimeframeType>('week' as TimeframeType);
+  const [metrics, setMetrics] = useState(generateDashboardMetrics('week' as TimeframeType));
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-      router.push('/login');
+    const localUser = getCurrentUser();
+    if (localUser) {
+      console.log("✅ User detected");
+      setUser(localUser);
+      setIsLoading(false);
     } else {
-      setUser(currentUser);
+      console.log("❌ No user found, redirecting...");
+      router.push('/login');
     }
   }, [router]);
 
@@ -48,10 +46,21 @@ export default function DashboardPage() {
     setMetrics(generateDashboardMetrics(newTimeframe));
   };
 
-  if (!user) {
-    return null;
+  // 6. TAMPILAN LOADING (Mencegah kedip/flash)
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+          <p className="text-slate-400 animate-pulse">Syncing Dashboard Data...</p>
+        </div>
+      </div>
+    );
   }
 
+  if (!user) return null;
+
+  // 7. RENDER DASHBOARD (UI ASLI KAMU)
   return (
     <DashboardLayout userName={user.name} userEmail={user.email}>
       <Tabs defaultValue="overview" className="w-full">
@@ -68,9 +77,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex gap-2">
               <button
-                onClick={() => handleTimeframeChange('week')}
+                onClick={() => handleTimeframeChange('week' as TimeframeType)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  timeframe === 'week'
+                  timeframe === ('week' as TimeframeType)
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
@@ -78,9 +87,9 @@ export default function DashboardPage() {
                 This Week
               </button>
               <button
-                onClick={() => handleTimeframeChange('month')}
+                onClick={() => handleTimeframeChange('month' as TimeframeType)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  timeframe === 'month'
+                  timeframe === ('month' as TimeframeType)
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
@@ -123,7 +132,7 @@ export default function DashboardPage() {
             />
             <MetricCard
               label={metrics.revenue.label}
-              value={`$${metrics.revenue.value}`}
+              value={metrics.revenue.value as unknown as number}
               trend={metrics.revenue.trend}
               color="from-pink-400 to-pink-600"
             />
@@ -182,7 +191,7 @@ function StatCard({
   subtitle: string;
 }) {
   return (
-    <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-lg p-6">
+    <div className="bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-lg p-6">
       <p className="text-slate-400 text-sm font-medium">{title}</p>
       <h3 className="text-4xl font-bold text-white mt-2">{value}</h3>
       <p className="text-slate-500 text-xs mt-2">{subtitle}</p>

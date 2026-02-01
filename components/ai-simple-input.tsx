@@ -43,8 +43,8 @@ export function AISimpleInput() {
         message: 'Successfully processed and synced to all systems',
         details: {
           taskTitle: analysis.actionItems[0]?.title || 'Work Task',
-          priority: analysis.actionItems[0]?.priority || 'MEDIUM',
-          dueDate: analysis.actionItems[0]?.dueDate || 'Not specified',
+          priority: (analysis.actionItems[0]?.priority?.toUpperCase() || 'MEDIUM') as 'HIGH' | 'MEDIUM' | 'LOW',
+          dueDate: analysis.actionItems[0]?.dueDate instanceof Date ? analysis.actionItems[0].dueDate.toISOString().split('T')[0] : analysis.actionItems[0]?.dueDate || 'Not specified',
           estimatedHours: analysis.actionItems[0]?.estimatedHours || 0,
           conflictDetected: analysis.conflicts.length > 0,
           suggestions: analysis.suggestions.slice(0, 2),
@@ -142,13 +142,13 @@ export function AISimpleInput() {
         >
           <div className="flex items-start gap-4">
             {result.status === 'processing' && (
-              <Loader2 className="animate-spin text-blue-400 flex-shrink-0 mt-1" size={20} />
+              <Loader2 className="animate-spin text-blue-400 shrink-0 mt-1" size={20} />
             )}
             {result.status === 'success' && (
-              <CheckCircle2 className="text-green-400 flex-shrink-0 mt-1" size={20} />
+              <CheckCircle2 className="text-green-400 shrink-0 mt-1" size={20} />
             )}
             {result.status === 'error' && (
-              <AlertCircle className="text-red-400 flex-shrink-0 mt-1" size={20} />
+              <AlertCircle className="text-red-400 shrink-0 mt-1" size={20} />
             )}
 
             <div className="flex-1">
