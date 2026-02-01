@@ -15,7 +15,7 @@ function StatCard({
   subtitle: string;
 }) {
   return (
-    <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-lg p-6">
+    <div className="bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-lg p-6">
       <p className="text-slate-400 text-sm font-medium">{title}</p>
       <h3 className="text-4xl font-bold text-white mt-2">{value}</h3>
       <p className="text-slate-500 text-xs mt-2">{subtitle}</p>

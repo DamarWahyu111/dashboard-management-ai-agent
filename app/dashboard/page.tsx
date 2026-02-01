@@ -16,18 +16,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getCurrentUser } from '@/lib/auth';
 import type { User } from '@/lib/auth';
 import { generateDashboardMetrics, type TimeframeType } from '@/lib/dashboard';
-import { RefreshCw } from 'lucide-react';
-import { AISimpleInput } from '@/components/ai-simple-input'; // Import AISimpleInput
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import { RefreshCw, Calendar as CalendarIcon } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
+  const [selectedDateEvents, setSelectedDateEvents] = useState<Array<{ id: string; title: string; time: string }>>([]);
+  const [selectedDateTasks, setSelectedDateTasks] = useState<Array<{ id: string; name: string; priority: string; status: string }>>([]);
+  const [additionalEvents, setAdditionalEvents] = useState<Array<{ id: string; title: string; date: Date; time: string }>>([]);
+  const [additionalTasks, setAdditionalTasks] = useState<Array<{ id: string; name: string; priority: string; status: string }>>([]);
   const [timeframe, setTimeframe] = useState<TimeframeType>('week' as TimeframeType);
   const [metrics, setMetrics] = useState(generateDashboardMetrics('week' as TimeframeType));
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -43,39 +43,33 @@ export default function DashboardPage() {
       router.push('/login');
     }
 
-    // Handle hash navigation (e.g., #calendar)
+    // Handle hash navigation
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1);
       if (hash === 'calendar') {
         setActiveTab('overview');
-        // Scroll to calendar section
         setTimeout(() => {
           const calendarSection = document.getElementById('team-calendar');
-          if (calendarSection) {
-            calendarSection.scrollIntoView({ behavior: 'smooth' });
-          }
+          if (calendarSection) calendarSection.scrollIntoView({ behavior: 'smooth' });
         }, 100);
       } else if (hash && ['overview', 'charts', 'statistics', 'ai'].includes(hash)) {
         setActiveTab(hash);
-      } else if (!hash) {
-        setActiveTab('overview');
       }
     };
 
-    // Handle custom events from sidebar
-    const handleNavigateToCalendar = () => {
+    // Event Listeners for custom navigation
+    const onNavigateToCalendar = () => {
       setActiveTab('overview');
       window.location.hash = 'calendar';
       setTimeout(() => {
         const calendarSection = document.getElementById('team-calendar');
-        if (calendarSection) {
-          calendarSection.scrollIntoView({ behavior: 'smooth' });
-        }
+        if (calendarSection) calendarSection.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     };
 
-    const handleNavigateToTab = (event: CustomEvent) => {
-      const tab = event.detail;
+    const onNavigateToTab = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const tab = customEvent.detail;
       if (['overview', 'charts', 'statistics', 'ai'].includes(tab)) {
         setActiveTab(tab);
         window.location.hash = tab === 'overview' ? '' : tab;
@@ -84,13 +78,13 @@ export default function DashboardPage() {
 
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
-    window.addEventListener('navigateToCalendar', handleNavigateToCalendar as EventListener);
-    window.addEventListener('navigateToTab', handleNavigateToTab as EventListener);
+    window.addEventListener('navigateToCalendar', onNavigateToCalendar);
+    window.addEventListener('navigateToTab', onNavigateToTab);
     
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
-      window.removeEventListener('navigateToCalendar', handleNavigateToCalendar as EventListener);
-      window.removeEventListener('navigateToTab', handleNavigateToTab as EventListener);
+      window.removeEventListener('navigateToCalendar', onNavigateToCalendar);
+      window.removeEventListener('navigateToTab', onNavigateToTab);
     };
   }, [router]);
 
@@ -106,7 +100,30 @@ export default function DashboardPage() {
     setMetrics(generateDashboardMetrics(newTimeframe));
   };
 
-  // 6. TAMPILAN LOADING (Mencegah kedip/flash)
+  // Fungsi untuk button 'Lihat Detail Calendar' (Versi yang sudah dibetulkan)
+  const handleManualCalendarNav = () => {
+    setActiveTab('overview');
+    window.location.hash = 'calendar';
+    setTimeout(() => {
+      const calendarSection = document.getElementById('team-calendar');
+      if (calendarSection) {
+        calendarSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  const handleDateSelect = (date: Date, events: Array<{ id: string; title: string; time: string }>, tasks: Array<{ id: string; name: string; priority: string; status: string }>) => {
+    setSelectedCalendarDate(date);
+    setSelectedDateEvents(events);
+    setSelectedDateTasks(tasks);
+    setTimeout(() => {
+      const detailsSection = document.getElementById('calendar-details');
+      if (detailsSection) {
+        detailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
@@ -118,33 +135,8 @@ export default function DashboardPage() {
     );
   }
 
-  const handleNavigateToCalendar = () => {
-    setActiveTab('overview');
-    window.location.hash = 'calendar';
-    setTimeout(() => {
-      const calendarSection = document.getElementById('team-calendar');
-      if (calendarSection) {
-        calendarSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
-  };
-
-  const handleDateSelect = (date: Date, events: MockCalendarEvent[], tasks: MockSheetEntry[]) => {
-    setSelectedCalendarDate(date);
-    setSelectedDateEvents(events);
-    setSelectedDateTasks(tasks);
-    // Scroll to details
-    setTimeout(() => {
-      const detailsSection = document.getElementById('calendar-details');
-      if (detailsSection) {
-        detailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
-  };
-
   if (!user) return null;
 
-  // 7. RENDER DASHBOARD (UI ASLI KAMU)
   return (
     <DashboardLayout userName={user.name} userEmail={user.email}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -227,7 +219,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">Team Calendar</h3>
               <Button
-                onClick={handleNavigateToCalendar}
+                onClick={handleManualCalendarNav}
                 variant="outline"
                 size="sm"
                 className="bg-white hover:bg-gray-200 text-black border-white flex items-center gap-2"
@@ -238,21 +230,21 @@ export default function DashboardPage() {
             </div>
             <CalendarView 
               showDetailsBelow={true}
-              onDateSelect={handleDateSelect}
-              customEvents={additionalEvents}
-              customTasks={additionalTasks}
+              onDateSelect={(date, events, tasks) => handleDateSelect(date, events as unknown as Array<{ id: string; title: string; time: string }>, tasks as unknown as Array<{ id: string; name: string; priority: string; status: string }>)}
+              customEvents={additionalEvents as any}
+              customTasks={additionalTasks as any}
             />
             <p className="text-sm text-slate-400 mt-2">
               💡 Klik pada tanggal untuk melihat detail task, meeting, dan deadline di bawah calendar.
             </p>
             
-            {/* Calendar Day Details - Show below calendar */}
+            {/* Calendar Day Details */}
             {selectedCalendarDate && (
               <div id="calendar-details" className="mt-4">
                 <CalendarDayDetails 
                   date={selectedCalendarDate}
-                  events={selectedDateEvents}
-                  tasks={selectedDateTasks}
+                  events={selectedDateEvents as any}
+                  tasks={selectedDateTasks as any}
                 />
               </div>
             )}
@@ -300,14 +292,12 @@ export default function DashboardPage() {
             </div>
             <BotTaskProcessor 
               onTaskProcessed={(result) => {
-                // Add processed task and event to calendar
                 if (result.task) {
-                  setAdditionalTasks((prev) => [...prev, result.task]);
+                  setAdditionalTasks((prev) => [...prev, result.task as any]);
                 }
                 if (result.calendarEvent) {
-                  setAdditionalEvents((prev) => [...prev, result.calendarEvent!]);
+                  setAdditionalEvents((prev) => [...prev, result.calendarEvent as any]);
                 }
-                // Refresh page to show new items
                 setTimeout(() => {
                   window.location.reload();
                 }, 2000);
@@ -322,23 +312,5 @@ export default function DashboardPage() {
         </TabsContent>
       </Tabs>
     </DashboardLayout>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="bg-linear-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-lg p-6">
-      <p className="text-slate-400 text-sm font-medium">{title}</p>
-      <h3 className="text-4xl font-bold text-white mt-2">{value}</h3>
-      <p className="text-slate-500 text-xs mt-2">{subtitle}</p>
-    </div>
   );
 }

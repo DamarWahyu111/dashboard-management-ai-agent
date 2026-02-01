@@ -195,7 +195,7 @@ export function DashboardLayout({ children, userName, userEmail }: DashboardLayo
         {/* Content Area */}
         <div className="p-6">
           {!selectedTeam ? (
-            <div className="flex items-center justify-center min-h-[600px]">
+            <div className="flex items-center justify-center min-h-150">
               <div className="w-full max-w-md space-y-6">
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-white mb-2">No Team Selected</h2>

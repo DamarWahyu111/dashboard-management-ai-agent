@@ -15,7 +15,7 @@ export function MetricCard({ label, value, trend, icon, color }: MetricCardProps
   const isTrendUp = trend !== undefined && trend >= 0;
 
   return (
-    <Card className={`bg-gradient-to-br ${bgGradient} border-0 text-black p-6`}>
+    <Card className={`bg-linear-to-br ${bgGradient} border-0 text-black p-6`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium opacity-90">{label}</p>

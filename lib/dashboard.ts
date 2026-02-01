@@ -183,9 +183,9 @@ export function getTimeframeLabel(timeframe: TimeframeType): string {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
 
-  if (timeframe === 'thisWeek') {
+  if (timeframe === 'week') {
     return `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
-  } else if (timeframe === 'thisMonth') {
+  } else if (timeframe === 'month') {
     return `${today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
   }
   return 'Custom Range';

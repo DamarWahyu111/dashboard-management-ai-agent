@@ -85,7 +85,7 @@ export function BotTaskProcessor({ onTaskProcessed }: BotTaskProcessorProps) {
   return (
     <div className="space-y-6">
       {/* Input Section - Simulate BOT Input */}
-      <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 p-6">
+      <Card className="bg-linear-to-br from-slate-800 to-slate-900 border-slate-700 p-6">
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
             <Zap className="text-blue-400" size={24} />
@@ -187,9 +187,9 @@ export function BotTaskProcessor({ onTaskProcessed }: BotTaskProcessorProps) {
       {result && !isProcessing && (
         <div className="space-y-4 animate-in fade-in duration-300">
           {/* Task Extracted */}
-          <Card className="bg-gradient-to-br from-green-900/20 to-slate-900 border-green-600/30 p-4">
+          <Card className="bg-linear-to-br from-green-900/20 to-slate-900 border-green-600/30 p-4">
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="text-green-400 mt-1 flex-shrink-0" size={20} />
+              <CheckCircle2 className="text-green-400 mt-1 shrink-0" size={20} />
               <div className="flex-1">
                 <h4 className="text-green-400 font-semibold mb-2">Task Processed</h4>
                 <p className="text-white font-medium">{result.task.task}</p>
@@ -209,7 +209,7 @@ export function BotTaskProcessor({ onTaskProcessed }: BotTaskProcessorProps) {
           </Card>
 
           {/* System Sync Status */}
-          <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 p-4">
+          <Card className="bg-linear-to-br from-slate-800 to-slate-900 border-slate-700 p-4">
             <div className="space-y-3">
               <h4 className="text-white font-semibold flex items-center gap-2">
                 <CheckCircle2 size={18} className="text-green-400" />
