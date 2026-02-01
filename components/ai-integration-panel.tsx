@@ -350,11 +350,11 @@ export function AIIntegrationPanel() {
 
               {/* Efficiency Score */}
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-4 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg">
+                <div className="p-4 bg-linear-to-br from-blue-600 to-blue-800 rounded-lg">
                   <div className="text-sm text-blue-200">Team Efficiency</div>
                   <div className="text-3xl font-bold text-white">{insight.teamEfficiency}%</div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-green-600 to-green-800 rounded-lg">
+                <div className="p-4 bg-linear-to-br from-green-600 to-green-800 rounded-lg">
                   <div className="text-sm text-green-200">Predicted Improvement</div>
                   <div className="text-3xl font-bold text-white">+{insight.predictedImprovement.percentageGain}%</div>
                 </div>
@@ -367,7 +367,7 @@ export function AIIntegrationPanel() {
                   <div className="space-y-2">
                     {insight.bottlenecks.map((bottleneck: string, idx: number) => (
                       <div key={idx} className="flex items-start gap-2 p-2 bg-slate-700/30 rounded">
-                        <AlertTriangle size={16} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle size={16} className="text-yellow-400 mt-0.5 shrink-0" />
                         <span className="text-slate-300 text-sm">{bottleneck}</span>
                       </div>
                     ))}
@@ -382,7 +382,7 @@ export function AIIntegrationPanel() {
                   <div className="space-y-2">
                     {insight.recommendations.map((rec: string, idx: number) => (
                       <div key={idx} className="flex items-start gap-2 p-2 bg-green-900/20 rounded border-l-2 border-green-600">
-                        <CheckCircle2 size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 size={16} className="text-green-400 mt-0.5 shrink-0" />
                         <span className="text-green-200 text-sm">{rec}</span>
                       </div>
                     ))}
@@ -397,7 +397,7 @@ export function AIIntegrationPanel() {
                   <div className="space-y-2">
                     {insight.automationOpportunities.map((opp: string, idx: number) => (
                       <div key={idx} className="flex items-start gap-2 p-2 bg-purple-900/20 rounded border-l-2 border-purple-600">
-                        <Zap size={16} className="text-purple-400 mt-0.5 flex-shrink-0" />
+                        <Zap size={16} className="text-purple-400 mt-0.5 shrink-0" />
                         <span className="text-purple-200 text-sm">{opp}</span>
                       </div>
                     ))}
