@@ -7,12 +7,23 @@ import { MetricCard } from '@/components/metric-card';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { AIAgent } from '@/components/ai-agent';
 import { CalendarView } from '@/components/calendar-view';
+import { CalendarDayDetails } from '@/components/calendar-day-details';
+import { BotTaskProcessor } from '@/components/bot-task-processor';
+import { StatisticsCards } from '@/components/statistics-cards';
+import { TeamMembersManager } from '@/components/team-members-manager';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getCurrentUser } from '@/lib/auth';
 import type { User } from '@/lib/auth';
 import { generateDashboardMetrics, type TimeframeType } from '@/lib/dashboard';
 import { RefreshCw } from 'lucide-react';
+import { AISimpleInput } from '@/components/ai-simple-input'; // Import AISimpleInput
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -20,7 +31,6 @@ export default function DashboardPage() {
   const [timeframe, setTimeframe] = useState<TimeframeType>('week' as TimeframeType);
   const [metrics, setMetrics] = useState(generateDashboardMetrics('week' as TimeframeType));
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const localUser = getCurrentUser();
@@ -32,6 +42,56 @@ export default function DashboardPage() {
       console.log("❌ No user found, redirecting...");
       router.push('/login');
     }
+
+    // Handle hash navigation (e.g., #calendar)
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      if (hash === 'calendar') {
+        setActiveTab('overview');
+        // Scroll to calendar section
+        setTimeout(() => {
+          const calendarSection = document.getElementById('team-calendar');
+          if (calendarSection) {
+            calendarSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      } else if (hash && ['overview', 'charts', 'statistics', 'ai'].includes(hash)) {
+        setActiveTab(hash);
+      } else if (!hash) {
+        setActiveTab('overview');
+      }
+    };
+
+    // Handle custom events from sidebar
+    const handleNavigateToCalendar = () => {
+      setActiveTab('overview');
+      window.location.hash = 'calendar';
+      setTimeout(() => {
+        const calendarSection = document.getElementById('team-calendar');
+        if (calendarSection) {
+          calendarSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    };
+
+    const handleNavigateToTab = (event: CustomEvent) => {
+      const tab = event.detail;
+      if (['overview', 'charts', 'statistics', 'ai'].includes(tab)) {
+        setActiveTab(tab);
+        window.location.hash = tab === 'overview' ? '' : tab;
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('navigateToCalendar', handleNavigateToCalendar as EventListener);
+    window.addEventListener('navigateToTab', handleNavigateToTab as EventListener);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('navigateToCalendar', handleNavigateToCalendar as EventListener);
+      window.removeEventListener('navigateToTab', handleNavigateToTab as EventListener);
+    };
   }, [router]);
 
   const handleRefresh = async () => {
@@ -58,12 +118,36 @@ export default function DashboardPage() {
     );
   }
 
+  const handleNavigateToCalendar = () => {
+    setActiveTab('overview');
+    window.location.hash = 'calendar';
+    setTimeout(() => {
+      const calendarSection = document.getElementById('team-calendar');
+      if (calendarSection) {
+        calendarSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  const handleDateSelect = (date: Date, events: MockCalendarEvent[], tasks: MockSheetEntry[]) => {
+    setSelectedCalendarDate(date);
+    setSelectedDateEvents(events);
+    setSelectedDateTasks(tasks);
+    // Scroll to details
+    setTimeout(() => {
+      const detailsSection = document.getElementById('calendar-details');
+      if (detailsSection) {
+        detailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
   if (!user) return null;
 
   // 7. RENDER DASHBOARD (UI ASLI KAMU)
   return (
     <DashboardLayout userName={user.name} userEmail={user.email}>
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-slate-800 border border-slate-700 mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="charts">Charts</TabsTrigger>
@@ -79,7 +163,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => handleTimeframeChange('week' as TimeframeType)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  timeframe === ('week' as TimeframeType)
+                  timeframe === 'week'
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
@@ -89,7 +173,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => handleTimeframeChange('month' as TimeframeType)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  timeframe === ('month' as TimeframeType)
+                  timeframe === 'month'
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
@@ -139,9 +223,39 @@ export default function DashboardPage() {
           </div>
 
           {/* Calendar Widget */}
-          <div className="mt-8">
-            <h3 className="text-xl font-bold text-white mb-4">Team Calendar</h3>
-            <CalendarView />
+          <div id="team-calendar" className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white">Team Calendar</h3>
+              <Button
+                onClick={handleNavigateToCalendar}
+                variant="outline"
+                size="sm"
+                className="bg-white hover:bg-gray-200 text-black border-white flex items-center gap-2"
+              >
+                <CalendarIcon size={16} />
+                <span>Lihat Detail Calendar</span>
+              </Button>
+            </div>
+            <CalendarView 
+              showDetailsBelow={true}
+              onDateSelect={handleDateSelect}
+              customEvents={additionalEvents}
+              customTasks={additionalTasks}
+            />
+            <p className="text-sm text-slate-400 mt-2">
+              💡 Klik pada tanggal untuk melihat detail task, meeting, dan deadline di bawah calendar.
+            </p>
+            
+            {/* Calendar Day Details - Show below calendar */}
+            {selectedCalendarDate && (
+              <div id="calendar-details" className="mt-4">
+                <CalendarDayDetails 
+                  date={selectedCalendarDate}
+                  events={selectedDateEvents}
+                  tasks={selectedDateTasks}
+                />
+              </div>
+            )}
           </div>
 
           {/* Quick Insight */}
@@ -161,20 +275,50 @@ export default function DashboardPage() {
 
         {/* Statistics Tab */}
         <TabsContent value="statistics" className="space-y-6 mt-6">
-          <h2 className="text-xl font-bold text-white mb-4">Team Statistics</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <StatCard title="Team Members" value="12" subtitle="Active this week" />
-            <StatCard title="Tasks Completed" value="48" subtitle="+8 from last week" />
-            <StatCard title="Avg Efficiency" value="78%" subtitle="Team average" />
-            <StatCard title="Meetings This Week" value="14" subtitle="Total scheduled" />
-            <StatCard title="Docs Created" value="23" subtitle="Shared with team" />
-            <StatCard title="AI Suggestions Used" value="31" subtitle="Accepted by team" />
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-white mb-2">Team Statistics</h2>
+              <p className="text-slate-400 text-sm">Data dari BOT WA dan team members</p>
+            </div>
+            <StatisticsCards />
+            
+            <div className="border-t border-slate-700 pt-6 mt-6">
+              <h2 className="text-xl font-bold text-white mb-2">Team Members Management</h2>
+              <TeamMembersManager />
+            </div>
           </div>
         </TabsContent>
 
         {/* AI Orchestration Tab */}
         <TabsContent value="ai" className="space-y-6 mt-6">
-          <AIAgent />
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-white mb-2">WA BOT Integration</h2>
+              <p className="text-slate-400 text-sm mb-4">
+                Simulasi input dari WA BOT. Task akan otomatis di-sync ke Google Sheets, Google Calendar, dan Slack.
+              </p>
+            </div>
+            <BotTaskProcessor 
+              onTaskProcessed={(result) => {
+                // Add processed task and event to calendar
+                if (result.task) {
+                  setAdditionalTasks((prev) => [...prev, result.task]);
+                }
+                if (result.calendarEvent) {
+                  setAdditionalEvents((prev) => [...prev, result.calendarEvent!]);
+                }
+                // Refresh page to show new items
+                setTimeout(() => {
+                  window.location.reload();
+                }, 2000);
+              }}
+            />
+            
+            <div className="border-t border-slate-700 pt-6 mt-6">
+              <h2 className="text-xl font-bold text-white mb-2">AI Agent</h2>
+              <AIAgent />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </DashboardLayout>
