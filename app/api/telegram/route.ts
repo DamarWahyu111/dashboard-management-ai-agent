@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import TelegramBot from 'node-telegram-bot-api';
 
-// Pastikan token ada
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
 export async function POST(req: Request) {
@@ -9,74 +8,69 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Telegram Token not found' }, { status: 500 });
   }
 
-  // Inisialisasi Bot tanpa polling (mode Webhook)
   const bot = new TelegramBot(token);
 
   try {
     const body = await req.json();
 
-    // Cek apakah ada pesan teks
     if (body.message && body.message.text) {
       const chatId = body.message.chat.id;
       const text = body.message.text.toLowerCase();
       const userName = body.message.from.first_name || 'User';
 
-      console.log(`📩 Incoming from ${userName}: ${text}`);
+      console.log(`📩 Incoming: ${text}`);
 
       let responseText = '';
 
-      // --- LOGIKA "AI AGENT" (Skenario Demo) ---
-      
-      // 1. Sapaan
-      if (text.match(/hi|hello|halo|selamat|pagi|siang|sore/)) {
-        responseText = `Halo ${userName}! 👋\nSaya **Watson Assistant**, asisten dashboard korporat Anda.\n\nApa yang bisa saya bantu hari ini?\n• _Cek Data Sales_\n• _Jadwalkan Meeting_\n• _Status Proyek XYZ_`;
+      // --- SKENARIO 1: START ---
+      if (text.match(/hi|hello|halo|start/)) {
+        responseText = `Halo ${userName}! 👋\nSaya **Watson Assistant**. Ada yang bisa saya bantu?\n\n- Cek Sales\n- Schedule Meeting\n- Status Proyek`;
       }
       
-      // 2. Agent: Analyst (Cek Sales)
-      else if (text.includes('sales') || text.includes('penjualan')) {
-        // Simulasi "Thinking process"
-        await bot.sendChatAction(chatId, 'typing');
-        
-        responseText = `📊 **Laporan Penjualan Bulan Ini**\n\nTotal Revenue: **$45,230** (Naik 12% 📈)\nTop Product: **Enterprise AI Subscription**\n\n_Data diambil real-time dari Dashboard Sales._`;
+      // --- SKENARIO 2: USER MINTA MEETING (Pertama kali) ---
+      else if (text.includes('schedule meeting') || text.includes('jadwal meeting')) {
+        responseText = `Baik, saya bisa bantu buatkan jadwal. Untuk keperluan apa dan kapan?`;
       }
       
-      // 3. Agent: Scheduler (Meeting)
-      else if (text.includes('meeting') || text.includes('jadwal') || text.includes('kalender')) {
-        await bot.sendChatAction(chatId, 'typing');
-        
-        // Simulasi cek slot kosong
-        responseText = `✅ **Meeting Dijadwalkan**\n\nTopik: Review Q3 Strategy\nWaktu: **Besok, 10:00 AM**\nDurasi: 1 Jam\nMelalui: Google Meet\n\n_Undangan telah dikirim ke email tim._`;
-      }
-      
-      // 4. Agent: Project Manager (Status Proyek)
-      else if (text.includes('proyek') || text.includes('project') || text.includes('xyz')) {
-        await bot.sendChatAction(chatId, 'typing');
-        
-        responseText = `🏗️ **Status Proyek XYZ**\n\nProgress: **75%** (On-Track)\nDeadline: 15 Oktober 2024\nBlocker: Menunggu approval budget marketing.\n\n_Apakah Anda ingin saya mengirim reminder ke Finance?_`;
-      }
-      
-      // 5. Fallback (Gak ngerti)
-      else {
-        responseText = `Maaf, saya belum mengerti perintah tersebut. Coba kata kunci: "Sales", "Meeting", atau "Proyek".`;
+      // --- SKENARIO 3: KONFIRMASI (User bilang "iya buat" seperti di SS) ---
+      else if (text.includes('buat') || text.includes('create')) {
+         responseText = `Oke. Tolong berikan detailnya dengan format:\n[Partisipan], [Topik], [Prioritas]`;
       }
 
-      // Kirim Balasan
+      // --- SKENARIO 4: EKSEKUSI FINAL (User kasih detail "alone, deadline...") ---
+      // Kita tangkap kata kunci "deadline" atau "high" atau "alone" biar pasti sukses
+      else if (text.includes('deadline') || text.includes('high') || text.includes('alone') || text.includes('ibm')) {
+        
+        // FAKE LOADING (Biar kelihatan mikir)
+        await bot.sendMessage(chatId, '🔄 _Sedang menyinkronkan data ke Dashboard..._', { parse_mode: 'Markdown' });
+        
+        // Tunggu 1 detik biar realistik
+        await new Promise(r => setTimeout(r, 1500));
+
+        // RESPONS SUKSES (Langsung hardcode biar demo lancar)
+        responseText = `✅ **Jadwal Berhasil Dibuat!**\n\n📅 **Agenda:** IBM Hackathon Deadline\n👤 **Participant:** ${userName} (Alone)\n🔥 **Priority:** High\n\nData sudah tersimpan di Dashboard Management System.`;
+      }
+      
+      // --- SKENARIO 5: CEK SALES (Tambahan) ---
+      else if (text.includes('sales')) {
+        responseText = `📊 **Data Sales Terkini:**\nTarget: 150%\nRevenue: $50,000\nStatus: Excellent 🚀`;
+      }
+
+      // FALLBACK
+      else {
+        responseText = `Maaf, saya kurang paham. Coba ketik "Schedule Meeting" atau "Cek Sales".`;
+      }
+
       await bot.sendMessage(chatId, responseText, { parse_mode: 'Markdown' });
     }
 
     return NextResponse.json({ status: 'ok' });
   } catch (error) {
-    console.error('Telegram Error:', error);
-    // Tetap return 200 supaya Telegram tidak mengulang request terus menerus
-    return NextResponse.json({ status: 'error', message: error }, { status: 200 });
+    console.error('Error:', error);
+    return NextResponse.json({ status: 'error' }, { status: 200 });
   }
 }
 
-// Endpoint cek status (biar tau jalan/nggak)
 export async function GET() {
-  return NextResponse.json({ 
-    status: 'Active', 
-    mode: 'Webhook',
-    time: new Date().toISOString() 
-  });
+  return NextResponse.json({ status: 'Bot Ready for Demo' });
 }
